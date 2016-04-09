@@ -1,0 +1,184 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>万年历</title>
+<script src="api.js"></script>
+<script>
+  window.onload=function(){
+	 var myDate=new Date();
+	 var year=myDate.getFullYear();
+	 var month=myDate.getMonth()+1; //0--Jan
+	 var obj_year=document.getElementById("year");
+	 //add data to the node
+	 var str="";
+	 for(var i=1990;i<2101;i++){
+	    str+="<option value=\""+i+"\">"+i+"年</option>";
+	 }
+	 obj_year.innerHTML=str;
+	 // select the data to current day
+	 for(var i=0;i<obj_year.length;i++)
+	    if(obj_year[i].value==year) obj_year[i].selected=true;
+	 var obj_month=document.getElementById("month");
+	 str="";
+	 for(var i=1;i<13;i++){
+	    str+="<option value="+i+">"+i+"月</option>";
+	 }
+	 obj_month.innerHTML=str;
+	 for(var i=0;i<obj_month.length;i++)
+	    if(obj_month[i].value==month) obj_month[i].selected=true;
+	//first line for Mon, Tues, ....
+	 var col_title=document.getElementById("title_day");
+	 str="";
+	 var myDate = ["星期一","星期二","星期三","星期四","星期五","星期六","星期日"];
+	 for(var i=0;i<7;i++){
+		str+="<div class=\"day\">"+myDate[i]+"</div>";
+	 }
+	 col_title.innerHTML=str;
+	 reDraw();
+  };
+ function reDraw(){
+	 var year=document.getElementById("year").value;
+	 var month=document.getElementById("month").value;
+	 //draw the month map
+	 //var week=document.getElementsByClassName("week");
+	 var currentDate= new Date(year,month-1,1);
+	 var dayInMonth=new Date(year, month, 0).getDate();//得到当前月的最后一天
+	 var cal_content=new Array();
+	 var w = new Date(year,month-1,1).getDay()-1; //得到1号的星期数,1---1
+     //var num = days_in_month(year,month); 
+	 if(w==-1) w=6;//此时开头为星期天的变为-1，则相应变为6----(7-1)
+     var index = 1;
+     for(var d = 0; d < dayInMonth+w; d++){ 
+        if(d<w){ 
+           cal_content[d] = ""; 
+        }
+		else{ 
+           cal_content[d] = index; 
+           index++; 
+        }
+     }
+	 var content=document.getElementById("content");
+	 content.innerHTMl="";
+	 str="";
+	 var motherDay=0,fatherDay=0,is_motherDay=0,is_fatherDay=0,maxDays=0;
+	 var api=new API();//使用自制api
+     for(var i=0;i<cal_content.length;i++){
+		 if(cal_content[i]!=""){ 
+           str+="<div class=\"day\"><div class=\"solar_day\">"+cal_content[i]+"</div>";
+		   //console.log(cal_content[i]);
+		   var lunar=api.getLunarDay(year,month,cal_content[i]);
+		   var fes=api.festivalCheckingSolar(month,cal_content[i]);
+		   var temp="";
+		   if(month==5){
+			  if((is_motherDay!=1)&&new Date(year,month-1,cal_content[i]).getDay()==0) motherDay++;
+		    }
+		    if(month==6){
+		      if((is_fatherDay!=1)&&(new Date(year,month-1,cal_content[i]).getDay()==0)) fatherDay++;
+		    }
+			if(lunar[0]=="腊月")  maxDays= api.getLastDay(year,month,cal_content[i]);
+		   if(fes!=null){
+			   temp=fes;
+		   }else{
+			   fes=api.festivalCheckingLunar(lunar);
+			   if(fes!=null){
+				  temp=fes;
+			   }else{
+				   if(month==5){//母亲节
+					  if((is_motherDay!=1)&&(motherDay==2)){
+							   temp="母亲节";
+							   is_motherDay=1;
+					  }
+					}
+					if(temp==""){
+						if(month==6){//父亲节 6月第三个星期天
+						   if((is_fatherDay!=1)&&(fatherDay==3)){
+							         temp="父亲节";
+								     is_fatherDay=1;
+						   }
+					    }
+					}
+					if(temp==""){//查找大年
+						if(lunar[0]=="腊月"){
+						    if(lunar[1]==api.cDay(maxDays))
+							          temp="大年/除夕";
+					    }
+					 }
+					if(temp==""){//检查节气
+						 var jieqi=api.sTermChecking(year,month-1,cal_content[i]);
+						 if(jieqi!=null) temp=jieqi;
+					 }
+					if(temp==""){
+							if(lunar[1]=="初一"){
+			                   temp=lunar[0];
+							 }else{
+								  temp=lunar[1];  
+							 }
+					 }  
+			   }
+			}
+			   str+="<div class=\"lunar_day\">"+temp+"</div></div>";
+		 }
+		  else
+		   str+="<div class=\"day2\"><div class=\"solar_day\">&nbsp;</div><div class=\"lunar_day\">&nbsp;</div></div>";
+	 }
+	  content.innerHTML=str; 
+ }
+</script>
+<style>
+#calendar{
+	border:thin #989898 solid; 
+	margin:0 auto;
+	width:70%; /*占屏幕70%*/
+	height:90%;
+	padding:5%;
+	border-radius:10px;
+	-webkit-border-radius: 10px; 
+    -moz-border-radius: 10px; 
+	overflow:hidden;}
+#control{
+	padding:2%;
+	width:96%;
+	height:8%;}
+#title_day{
+	margin:0 auto;
+	width:100%;
+	}
+.day{
+	float:left;
+	width:13.8%;/*100/7*/
+	background:#D3D3D3;
+	margin:0.1%;
+	text-align:center;}
+.day2{
+	float:left;
+	width:13.8%;/*100/7*/
+	background:#E7E7E7;
+	margin:0.1%;
+	text-align:center;}
+.solar_day{
+	font-size:1em;
+	font-weight:bold;
+	}
+.lunar_day{
+	font-size:0.3em;
+	padding:0.1%;
+	}
+</style>
+</head>
+
+<body>
+ <header style="text-align:center">万年历</header>
+ <div id="calendar">
+    <div id="control">
+        <select id="year" onchange="reDraw()"  style="position:relative;left:30%;"></select>
+        <select id="month" onChange="reDraw()" style="position:relative;left:50%;"></select>
+    </div>
+    <div id="cal_main">
+      <div id="title_day"></div>
+      <div id="content"></div>
+    </div>
+ </div>
+ <footer style="text-align:center">最后更新于：2016.4.9</footer>
+</body>
+</html>
